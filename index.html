@@ -513,7 +513,7 @@
                 <div class="region-tab pune" onclick="switchRegion('Pune')">Pune</div>
                 <div class="region-tab mumbai" onclick="switchRegion('Mumbai')">Mumbai</div>
                 <div class="region-tab nashik" onclick="switchRegion('Nashik')">Nashik</div>
-                <div class="region-tab aurangabad" onclick="switchRegion('Aurangabad')">Aurangabad</div>
+                <div class="region-tab aurangabad" onclick="switchRegion('Chhatrapati Sambhajinagar')">Chhatrapati Sambhajinagar</div>
                 <div class="region-tab nagpur" onclick="switchRegion('Nagpur')">Nagpur</div>
             </div>
 
@@ -622,13 +622,6 @@
                             <canvas id="maharashtraGenderChart"></canvas>
                         </div>
                     </div>
-
-                    <div class="chart-card">
-                        <h3 class="chart-title">Score Distribution</h3>
-                        <div class="chart-container">
-                            <canvas id="maharashtraScoreChart"></canvas>
-                        </div>
-                    </div>
                 </div>
 
                 <div class="top-performers-section">
@@ -650,7 +643,7 @@
             <div id="regionPune" class="region-content"></div>
             <div id="regionMumbai" class="region-content"></div>
             <div id="regionNashik" class="region-content"></div>
-            <div id="regionAurangabad" class="region-content"></div>
+            <div id="regionChhatrapatiSambhajinagar" class="region-content"></div>
             <div id="regionNagpur" class="region-content"></div>
         </div>
     </main>
@@ -663,7 +656,7 @@
         let rawData = [];
         let currentRegion = 'Maharashtra';
         let charts = {};
-        const regions = ['Maharashtra', 'Pune', 'Mumbai', 'Nashik', 'Aurangabad', 'Nagpur'];
+        const regions = ['Maharashtra', 'Pune', 'Mumbai', 'Nashik', 'Chhatrapati Sambhajinagar', 'Nagpur'];
 
         async function loadGoogleSheetData() {
             const sheetUrl = document.getElementById('sheetUrl').value.trim();
@@ -803,15 +796,16 @@
 
         function switchRegion(region) {
             document.querySelectorAll('.region-tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelector(`.region-tab.${region.toLowerCase()}`).classList.add('active');
+            document.querySelector(`.region-tab.${region.toLowerCase().replace(' ', '')}`).classList.add('active');
 
             document.querySelectorAll('.region-content').forEach(content => content.classList.remove('active'));
             
-            if (!document.getElementById(`region${region}`).innerHTML) {
+            const regionId = region.replace(' ', '');
+            if (!document.getElementById(`region${regionId}`).innerHTML) {
                 createRegionContent(region);
             }
             
-            document.getElementById(`region${region}`).classList.add('active');
+            document.getElementById(`region${regionId}`).classList.add('active');
             currentRegion = region;
             
             if (rawData.length > 0) {
@@ -823,8 +817,9 @@
         function createRegionContent(region) {
             if (region === 'Maharashtra') return;
             
-            const regionKey = region.toLowerCase();
-            const container = document.getElementById(`region${region}`);
+            const regionKey = region.toLowerCase().replace(' ', '');
+            const regionId = region.replace(' ', '');
+            const container = document.getElementById(`region${regionId}`);
             
             container.innerHTML = `
                 <div class="filters-section">
@@ -925,13 +920,6 @@
                             <canvas id="${regionKey}GenderChart"></canvas>
                         </div>
                     </div>
-
-                    <div class="chart-card">
-                        <h3 class="chart-title">Score Distribution</h3>
-                        <div class="chart-container">
-                            <canvas id="${regionKey}ScoreChart"></canvas>
-                        </div>
-                    </div>
                 </div>
 
                 <div class="top-performers-section">
@@ -958,7 +946,7 @@
         }
 
         function initializeRegionFilters(region) {
-            const regionKey = region.toLowerCase();
+            const regionKey = region.toLowerCase().replace(' ', '');
             const regionData = getRegionData(region);
 
             if (region === 'Maharashtra') {
@@ -1023,7 +1011,7 @@
         }
 
         function getFilteredRegionData(region) {
-            const regionKey = region.toLowerCase();
+            const regionKey = region.toLowerCase().replace(' ', '');
             let data = getRegionData(region);
 
             if (region === 'Maharashtra') {
@@ -1066,7 +1054,7 @@
         }
 
         function updateRegionStats(region, data) {
-            const regionKey = region.toLowerCase();
+            const regionKey = region.toLowerCase().replace(' ', '');
             const total = data.length;
             const passed = data.filter(row => row.status === 'Pass').length;
             const passRate = total > 0 ? (passed / total * 100).toFixed(1) : 0;
@@ -1108,11 +1096,10 @@
             updatePerformanceChart(region, data);
             updatePassFailChart(region, data);
             updateGenderChart(region, data);
-            updateScoreChart(region, data);
         }
 
         function updatePerformanceChart(region, data) {
-            const regionKey = region.toLowerCase();
+            const regionKey = region.toLowerCase().replace(' ', '');
             const canvas = document.getElementById(`${regionKey}PerformanceChart`);
             const titleEl = document.getElementById(`${regionKey}PerformanceChartTitle`);
             
@@ -1197,7 +1184,7 @@
         }
 
         function updatePassFailChart(region, data) {
-            const regionKey = region.toLowerCase();
+            const regionKey = region.toLowerCase().replace(' ', '');
             const canvas = document.getElementById(`${regionKey}PassFailChart`);
             if (!canvas) return;
             
@@ -1232,7 +1219,7 @@
         }
 
         function updateGenderChart(region, data) {
-            const regionKey = region.toLowerCase();
+            const regionKey = region.toLowerCase().replace(' ', '');
             const canvas = document.getElementById(`${regionKey}GenderChart`);
             if (!canvas) return;
             
@@ -1287,7 +1274,7 @@
         }
 
         function updateTopPerformers(region) {
-            const regionKey = region.toLowerCase();
+            const regionKey = region.toLowerCase().replace(' ', '');
             const selectEl = document.getElementById(`${regionKey}TopPerformersTradeFilter`);
             const containerEl = document.getElementById(`${regionKey}TopPerformersTable`);
             
