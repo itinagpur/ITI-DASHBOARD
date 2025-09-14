@@ -981,7 +981,7 @@
         }
 
         function handleCascadingFilters(region) {
-            const regionKey = region.toLowerCase();
+            const regionKey = region.toLowerCase().replace(' ', '');
             
             if (region === 'Maharashtra') {
                 const selectedRegion = document.getElementById('maharashtraRegionFilter').value;
