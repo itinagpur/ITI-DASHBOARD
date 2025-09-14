@@ -491,7 +491,8 @@
                     <input type="text" 
                            id="sheetUrl" 
                            class="sheet-url-input" 
-                           placeholder="Paste Google Sheet URL here" />
+                           placeholder="Paste Google Sheet URL here" 
+                           value="https://docs.google.com/spreadsheets/d/1_Ri9BrKELAPOovBSVf7anl4whgQObszJGWSBR5eXW6g/edit" />
                     <button class="btn-google-sheets" onclick="loadGoogleSheetData()">
                         Load Data
                     </button>
@@ -658,6 +659,16 @@
         let charts = {};
         const regions = ['Maharashtra', 'Pune', 'Mumbai', 'Nashik', 'Chhatrapati Sambhajinagar', 'Nagpur'];
 
+        // Region mapping for proper data filtering
+        const regionMapping = {
+            'Maharashtra': null, // Shows all data
+            'Pune': 'Pune',
+            'Mumbai': 'Mumbai',
+            'Nashik': 'Nashik',
+            'Chhatrapati Sambhajinagar': 'Chhatrapati Sambhajinagar',
+            'Nagpur': 'Nagpur'
+        };
+
         async function loadGoogleSheetData() {
             const sheetUrl = document.getElementById('sheetUrl').value.trim();
             
@@ -691,6 +702,10 @@
 
                 rawData = parsedData;
                 processData();
+                
+                // Debug: Check what regions exist in the data
+                const uniqueRegions = [...new Set(rawData.map(row => row.region).filter(Boolean))];
+                console.log('Unique regions in data:', uniqueRegions);
                 
                 document.getElementById('noDataMessage').classList.add('hidden');
                 document.getElementById('dashboardContent').classList.remove('hidden');
@@ -760,28 +775,35 @@
 
         function processData() {
             rawData = rawData.map(row => {
-                const totalMarks = parseFloat(row.Total_Marks || row.total_marks) || 0;
+                const totalMarks = parseFloat(row.Total_Marks || row.total_marks || row['Total Marks']) || 0;
                 return {
-                    region: row.Region_Name || row.region_name || row.Region || '',
-                    district: row.district_name || row.District_Name || row.District || '',
+                    region: row.Region_Name || row.region_name || row.Region || row.region || '',
+                    district: row.district_name || row.District_Name || row.District || row.district || '',
                     gender: row.gender || row.Gender || '',
-                    iti_name: row.iti_name || row.ITI_Name || row.ITI_name || '',
+                    iti_name: row.iti_name || row.ITI_Name || row.ITI_name || row['ITI Name'] || '',
                     trade: row.trade || row.Trade || '',
-                    trainee_name: row.trainee_name || row.Trainee_Name || row.Name || '',
-                    admission_year: parseInt(row.admission_year || row.Admission_Year) || 2024,
-                    trade_duration: parseInt(row['Trade_Duration '] || row.Trade_Duration || row.trade_duration) || 1,
-                    theory_marks: parseFloat(row.Trade_Theory_Marks || row.Theory_Marks) || 0,
-                    emp_skill_marks: parseFloat(row.Emp_Skill_Marks || row.Employment_Skill) || 0,
-                    practical_marks: parseFloat(row.Practical_Marks) || 0,
-                    formative_marks: parseFloat(row.Formative_Assesment || row.Formative_Assessment) || 0,
+                    trainee_name: row.trainee_name || row.Trainee_Name || row.Name || row.name || '',
+                    admission_year: parseInt(row.admission_year || row.Admission_Year || row['Admission Year']) || 2024,
+                    trade_duration: parseInt(row['Trade_Duration '] || row.Trade_Duration || row.trade_duration || row['Trade Duration']) || 1,
+                    theory_marks: parseFloat(row.Trade_Theory_Marks || row.Theory_Marks || row['Theory Marks']) || 0,
+                    emp_skill_marks: parseFloat(row.Emp_Skill_Marks || row.Employment_Skill || row['Employment Skill']) || 0,
+                    practical_marks: parseFloat(row.Practical_Marks || row['Practical Marks']) || 0,
+                    formative_marks: parseFloat(row.Formative_Assesment || row.Formative_Assessment || row['Formative Assessment']) || 0,
                     total_marks: totalMarks,
                     status: row.status || row.Status || (totalMarks >= 40 ? 'Pass' : 'Fail'),
                     student_type: getStudentType(
-                        parseInt(row.admission_year || row.Admission_Year) || 2024, 
-                        parseInt(row['Trade_Duration '] || row.Trade_Duration || row.trade_duration) || 1
+                        parseInt(row.admission_year || row.Admission_Year || row['Admission Year']) || 2024, 
+                        parseInt(row['Trade_Duration '] || row.Trade_Duration || row.trade_duration || row['Trade Duration']) || 1
                     )
                 };
             });
+
+            // Debug: Log processed data sample
+            if (rawData.length > 0) {
+                console.log('Sample processed data:', rawData[0]);
+                console.log('Chhatrapati Sambhajinagar records:', 
+                    rawData.filter(row => row.region === 'Chhatrapati Sambhajinagar').length);
+            }
         }
 
         function getStudentType(admissionYear, tradeDuration) {
@@ -795,17 +817,26 @@
         }
 
         function switchRegion(region) {
+            // Remove active class from all tabs
             document.querySelectorAll('.region-tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelector(`.region-tab.${region.toLowerCase().replace(' ', '')}`).classList.add('active');
+            
+            // Find and activate the correct tab
+            const regionTabClass = region.toLowerCase().replace(/\s+/g, '').replace('chhatrapatisambjinagar', 'aurangabad');
+            const tab = document.querySelector(`.region-tab.${regionTabClass}`);
+            if (tab) tab.classList.add('active');
 
+            // Hide all region contents
             document.querySelectorAll('.region-content').forEach(content => content.classList.remove('active'));
             
-            const regionId = region.replace(' ', '');
-            if (!document.getElementById(`region${regionId}`).innerHTML) {
+            // Show the selected region content
+            const regionId = region.replace(/\s+/g, '');
+            const regionContent = document.getElementById(`region${regionId}`);
+            
+            if (!regionContent.innerHTML && region !== 'Maharashtra') {
                 createRegionContent(region);
             }
             
-            document.getElementById(`region${regionId}`).classList.add('active');
+            regionContent.classList.add('active');
             currentRegion = region;
             
             if (rawData.length > 0) {
@@ -817,8 +848,8 @@
         function createRegionContent(region) {
             if (region === 'Maharashtra') return;
             
-            const regionKey = region.toLowerCase().replace(' ', '');
-            const regionId = region.replace(' ', '');
+            const regionKey = region.toLowerCase().replace(/\s+/g, '');
+            const regionId = region.replace(/\s+/g, '');
             const container = document.getElementById(`region${regionId}`);
             
             container.innerHTML = `
@@ -946,7 +977,7 @@
         }
 
         function initializeRegionFilters(region) {
-            const regionKey = region.toLowerCase().replace(' ', '');
+            const regionKey = region.toLowerCase().replace(/\s+/g, '');
             const regionData = getRegionData(region);
 
             if (region === 'Maharashtra') {
@@ -969,7 +1000,7 @@
         }
 
         function handleCascadingFilters(region) {
-            const regionKey = region.toLowerCase().replace(' ', '');
+            const regionKey = region.toLowerCase().replace(/\s+/g, '');
             
             if (region === 'Maharashtra') {
                 const selectedRegion = document.getElementById('maharashtraRegionFilter').value;
@@ -985,11 +1016,11 @@
                 }
             }
 
-            const selectedDistrict = document.getElementById(`${regionKey}DistrictFilter`).value;
+            const selectedDistrict = document.getElementById(`${regionKey}DistrictFilter`)?.value;
             const baseData = region === 'Maharashtra' ? 
                 (document.getElementById('maharashtraRegionFilter')?.value ? 
                  rawData.filter(row => row.region === document.getElementById('maharashtraRegionFilter').value) : rawData) :
-                rawData.filter(row => row.region === region);
+                getRegionData(region);
 
             if (selectedDistrict) {
                 const filteredData = baseData.filter(row => row.district === selectedDistrict);
@@ -1007,11 +1038,19 @@
             if (region === 'Maharashtra') {
                 return rawData;
             }
-            return rawData.filter(row => row.region === region);
+            
+            // Use the exact region name from the mapping
+            const targetRegion = regionMapping[region];
+            if (!targetRegion) return rawData;
+            
+            const filteredData = rawData.filter(row => row.region === targetRegion);
+            console.log(`Data for ${region} (${targetRegion}):`, filteredData.length, 'records');
+            
+            return filteredData;
         }
 
         function getFilteredRegionData(region) {
-            const regionKey = region.toLowerCase().replace(' ', '');
+            const regionKey = region.toLowerCase().replace(/\s+/g, '');
             let data = getRegionData(region);
 
             if (region === 'Maharashtra') {
@@ -1054,7 +1093,7 @@
         }
 
         function updateRegionStats(region, data) {
-            const regionKey = region.toLowerCase().replace(' ', '');
+            const regionKey = region.toLowerCase().replace(/\s+/g, '');
             const total = data.length;
             const passed = data.filter(row => row.status === 'Pass').length;
             const passRate = total > 0 ? (passed / total * 100).toFixed(1) : 0;
@@ -1099,7 +1138,7 @@
         }
 
         function updatePerformanceChart(region, data) {
-            const regionKey = region.toLowerCase().replace(' ', '');
+            const regionKey = region.toLowerCase().replace(/\s+/g, '');
             const canvas = document.getElementById(`${regionKey}PerformanceChart`);
             const titleEl = document.getElementById(`${regionKey}PerformanceChartTitle`);
             
@@ -1184,7 +1223,7 @@
         }
 
         function updatePassFailChart(region, data) {
-            const regionKey = region.toLowerCase().replace(' ', '');
+            const regionKey = region.toLowerCase().replace(/\s+/g, '');
             const canvas = document.getElementById(`${regionKey}PassFailChart`);
             if (!canvas) return;
             
@@ -1219,7 +1258,7 @@
         }
 
         function updateGenderChart(region, data) {
-            const regionKey = region.toLowerCase().replace(' ', '');
+            const regionKey = region.toLowerCase().replace(/\s+/g, '');
             const canvas = document.getElementById(`${regionKey}GenderChart`);
             if (!canvas) return;
             
@@ -1274,7 +1313,7 @@
         }
 
         function updateTopPerformers(region) {
-            const regionKey = region.toLowerCase().replace(' ', '');
+            const regionKey = region.toLowerCase().replace(/\s+/g, '');
             const selectEl = document.getElementById(`${regionKey}TopPerformersTradeFilter`);
             const containerEl = document.getElementById(`${regionKey}TopPerformersTable`);
             
@@ -1359,6 +1398,13 @@
                 select.value = currentValue;
             }
         }
+
+        // Auto-load the data on page load
+        window.addEventListener('load', () => {
+            if (document.getElementById('sheetUrl').value) {
+                loadGoogleSheetData();
+            }
+        });
 
         console.log('ITI Dashboard loaded successfully');
     </script>
