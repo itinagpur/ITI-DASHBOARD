@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maharashtra ITI Results Analytics Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #1e40af;
+            --secondary-color: #3b82f6;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --dark-color: #1f2937;
+            --light-color: #f8fafc;
+            --border-color: #e5e7eb;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--dark-color);
+            padding-bottom: 60px;
+        }
+
+        .dashboard-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem 2rem;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .title-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .logo-container {
+            width: 50px;
+            height: 50px;
+            background: #1e40af;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .dashboard-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .data-input-section {
+            background: rgba(248, 250, 252, 0.8);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            border: 2px solid #e2e8f0;
+        }
+
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .sheet-url-input {
+            flex: 1;
+            min-width: 300px;
+            padding: 0.75rem;
+            border: 2px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            background: white;
+        }
+
+        .sheet-url-input:focus {
+            outline: none;
+            border-color: #059669;
+            box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+        }
+
+        .btn-google-sheets {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #059669;
+            color: white;
+        }
+
+        .btn-google-sheets:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            background: #047857;
+        }
+
+        .status-text {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 0.5rem;
+        }
+
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .region-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 1rem;
+            box-shadow: var(--shadow);
+            overflow-x: auto;
+        }
+
+        .region-tab {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            white-space: nowrap;
+            border: 2px solid transparent;
+        }
+
+        .region-tab.maharashtra { background: #1e40af; color: white; }
+        .region-tab.pune { background: #dc2626; color: white; }
+        .region-tab.mumbai { background: #059669; color: white; }
+        .region-tab.nashik { background: #d97706; color: white; }
+        .region-tab.aurangabad { background: #7c2d12; color: white; }
+        .region-tab.nagpur { background: #581c87; color: white; }
+
+        .region-tab:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .region-tab.active {
+            border-color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
+        }
+
+        .region-content {
+            display: none;
+        }
+
+        .region-content.active {
+            display: block;
+        }
+
+        .filters-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            align-items: end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-label {
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--dark-color);
+        }
+
+        .filter-select {
+            padding: 0.5rem;
+            border: 2px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            background: white;
+            transition: border-color 0.3s ease;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s ease;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stat-card.success { border-left-color: var(--success-color); }
+        .stat-card.warning { border-left-color: var(--warning-color); }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .stat-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-icon {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-subtitle {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .charts-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .chart-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--dark-color);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .top-performers-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--dark-color);
+        }
+
+        .trade-selector {
+            margin-bottom: 1.5rem;
+        }
+
+        .performers-table {
+            background: white;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .performers-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .performers-table th {
+            background: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .performers-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 0.875rem;
+        }
+
+        .performers-table tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        .performer-rank {
+            background: var(--warning-color);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.75rem;
+        }
+
+        .performer-rank.gold { background: #fbbf24; }
+        .performer-rank.silver { background: #9ca3af; }
+        .performer-rank.bronze { background: #d97706; }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            color: white;
+            font-size: 1.125rem;
+        }
+
+        .loading-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-right: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden { display: none !important; }
+
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+            padding: 2rem;
+            border-radius: 1rem;
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        .no-trade-message {
+            text-align: center;
+            padding: 2rem;
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #1f2937;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            font-weight: 600;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+            z-index: 99;
+        }
+
+        @media (max-width: 768px) {
+            .input-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .sheet-url-input {
+                min-width: auto;
+                width: 100%;
+            }
+            
+            .dashboard-title {
+                font-size: 1.25rem;
+            }
+
+            .charts-section {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-container {
+                height: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay hidden" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <span>Loading data...</span>
+    </div>
+
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div class="title-section">
+                <div class="logo-container">ITI</div>
+                <h1 class="dashboard-title">Maharashtra ITI Results Analytics Dashboard</h1>
+            </div>
+            
+            <div class="data-input-section">
+                <div class="input-row">
+                    <input type="text" 
+                           id="sheetUrl" 
+                           class="sheet-url-input" 
+                           placeholder="Paste Google Sheet URL here" />
+                    <button class="btn-google-sheets" onclick="loadGoogleSheetData()">
+                        Load Data
+                    </button>
+                </div>
+                <div id="fileName" class="status-text"></div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <div id="noDataMessage" class="error-message">
+            <h3>Enter Google Sheet URL</h3>
+            <p>Paste your Google Sheets URL above and click "Load Data" to begin analysis.</p>
+        </div>
+
+        <div id="dashboardContent" class="hidden">
+            <div class="region-tabs">
+                <div class="region-tab maharashtra active" onclick="switchRegion('Maharashtra')">Maharashtra</div>
+                <div class="region-tab pune" onclick="switchRegion('Pune')">Pune</div>
+                <div class="region-tab mumbai" onclick="switchRegion('Mumbai')">Mumbai</div>
+                <div class="region-tab nashik" onclick="switchRegion('Nashik')">Nashik</div>
+                <div class="region-tab aurangabad" onclick="switchRegion('Aurangabad')">Aurangabad</div>
+                <div class="region-tab nagpur" onclick="switchRegion('Nagpur')">Nagpur</div>
+            </div>
+
+            <div id="regionMaharashtra" class="region-content active">
+                <div class="filters-section">
+                    <div class="filters-grid">
+                        <div class="filter-group">
+                            <label class="filter-label">Region</label>
+                            <select class="filter-select" id="maharashtraRegionFilter" onchange="handleCascadingFilters('Maharashtra')">
+                                <option value="">All Regions</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">District</label>
+                            <select class="filter-select" id="maharashtraDistrictFilter" onchange="handleCascadingFilters('Maharashtra')">
+                                <option value="">All Districts</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">ITI Name</label>
+                            <select class="filter-select" id="maharashtraItiFilter" onchange="updateRegionContent('Maharashtra')">
+                                <option value="">All ITIs</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Gender</label>
+                            <select class="filter-select" id="maharashtraGenderFilter" onchange="updateRegionContent('Maharashtra')">
+                                <option value="">All Genders</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Student Type</label>
+                            <select class="filter-select" id="maharashtraStudentTypeFilter" onchange="updateRegionContent('Maharashtra')">
+                                <option value="">All Students</option>
+                                <option value="final">Final Year</option>
+                                <option value="first">First Year</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Trade</label>
+                            <select class="filter-select" id="maharashtraTradeFilter" onchange="updateRegionContent('Maharashtra')">
+                                <option value="">All Trades</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-overview">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-title">Total Students</div>
+                            <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1); color: var(--primary-color);">👥</div>
+                        </div>
+                        <div class="stat-value" id="maharashtraTotalStudents">0</div>
+                        <div class="stat-subtitle" id="maharashtraSubtitle">Across Maharashtra</div>
+                    </div>
+
+                    <div class="stat-card success">
+                        <div class="stat-header">
+                            <div class="stat-title">Pass Rate</div>
+                            <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success-color);">✅</div>
+                        </div>
+                        <div class="stat-value" id="maharashtraPassRate">0%</div>
+                        <div class="stat-subtitle" id="maharashtraPassCount">0 students passed</div>
+                    </div>
+
+                    <div class="stat-card warning">
+                        <div class="stat-header">
+                            <div class="stat-title">Average Score</div>
+                            <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--warning-color);">📈</div>
+                        </div>
+                        <div class="stat-value" id="maharashtraAvgScore">0</div>
+                        <div class="stat-subtitle">Total marks average</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-title">Gender Distribution</div>
+                            <div class="stat-icon" style="background: rgba(139, 69, 19, 0.1); color: #8b4513;">⚖️</div>
+                        </div>
+                        <div class="stat-value" id="maharashtraGenderRatio">0:0</div>
+                        <div class="stat-subtitle">Male : Female ratio</div>
+                    </div>
+                </div>
+
+                <div class="charts-section">
+                    <div class="chart-card">
+                        <h3 class="chart-title" id="maharashtraPerformanceChartTitle">Performance Analysis</h3>
+                        <div class="chart-container">
+                            <canvas id="maharashtraPerformanceChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <h3 class="chart-title">Pass/Fail Distribution</h3>
+                        <div class="chart-container">
+                            <canvas id="maharashtraPassFailChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <h3 class="chart-title">Gender-wise Performance</h3>
+                        <div class="chart-container">
+                            <canvas id="maharashtraGenderChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <h3 class="chart-title">Score Distribution</h3>
+                        <div class="chart-container">
+                            <canvas id="maharashtraScoreChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="top-performers-section">
+                    <h2 class="section-title">Top Performers - Maharashtra</h2>
+                    <div class="trade-selector">
+                        <div class="filter-group">
+                            <label class="filter-label">Select Trade for Top Performers</label>
+                            <select class="filter-select" id="maharashtraTopPerformersTradeFilter" onchange="updateTopPerformers('Maharashtra')">
+                                <option value="">Select a Trade</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="performers-table" id="maharashtraTopPerformersTable">
+                        <div class="no-trade-message">Please select a trade to view top performers</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="regionPune" class="region-content"></div>
+            <div id="regionMumbai" class="region-content"></div>
+            <div id="regionNashik" class="region-content"></div>
+            <div id="regionAurangabad" class="region-content"></div>
+            <div id="regionNagpur" class="region-content"></div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        Developed By - Anand Kathalewar, Govt. ITI Nagpur
+    </footer>
+
+    <script>
+        let rawData = [];
+        let currentRegion = 'Maharashtra';
+        let charts = {};
+        const regions = ['Maharashtra', 'Pune', 'Mumbai', 'Nashik', 'Aurangabad', 'Nagpur'];
+
+        async function loadGoogleSheetData() {
+            const sheetUrl = document.getElementById('sheetUrl').value.trim();
+            
+            if (!sheetUrl) {
+                alert('Please enter a Google Sheet URL');
+                return;
+            }
+
+            try {
+                document.getElementById('loadingOverlay').classList.remove('hidden');
+                document.getElementById('fileName').textContent = 'Loading from Google Sheets...';
+
+                const sheetId = extractSheetId(sheetUrl);
+                if (!sheetId) {
+                    throw new Error('Invalid Google Sheet URL format');
+                }
+
+                const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`;
+                const response = await fetch(csvUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`Cannot access sheet. Please ensure sheet is shared with "Anyone with the link can view"`);
+                }
+
+                const csvData = await response.text();
+                const parsedData = parseCSV(csvData);
+                
+                if (parsedData.length === 0) {
+                    throw new Error('No data found in sheet');
+                }
+
+                rawData = parsedData;
+                processData();
+                
+                document.getElementById('noDataMessage').classList.add('hidden');
+                document.getElementById('dashboardContent').classList.remove('hidden');
+                document.getElementById('fileName').textContent = `Loaded ${rawData.length} records successfully`;
+                
+                initializeAllRegions();
+                updateRegionContent(currentRegion);
+
+            } catch (error) {
+                alert(`Error loading data: ${error.message}`);
+                document.getElementById('fileName').textContent = 'Failed to load data';
+            }
+
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+
+        function extractSheetId(url) {
+            const patterns = [
+                /\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/,
+                /\/spreadsheets\/u\/\d+\/d\/([a-zA-Z0-9-_]+)/
+            ];
+            
+            for (const pattern of patterns) {
+                const match = url.match(pattern);
+                if (match) return match[1];
+            }
+            return null;
+        }
+
+        function parseCSV(csv) {
+            const lines = csv.trim().split('\n');
+            const headers = parseCSVLine(lines[0]).map(h => h.trim());
+            const data = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim()) {
+                    const values = parseCSVLine(lines[i]);
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header] = values[index] ? values[index].trim() : '';
+                    });
+                    data.push(row);
+                }
+            }
+            return data;
+        }
+
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current);
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            result.push(current);
+            return result;
+        }
+
+        function processData() {
+            rawData = rawData.map(row => {
+                const totalMarks = parseFloat(row.Total_Marks || row.total_marks) || 0;
+                return {
+                    region: row.Region_Name || row.region_name || row.Region || '',
+                    district: row.district_name || row.District_Name || row.District || '',
+                    gender: row.gender || row.Gender || '',
+                    iti_name: row.iti_name || row.ITI_Name || row.ITI_name || '',
+                    trade: row.trade || row.Trade || '',
+                    trainee_name: row.trainee_name || row.Trainee_Name || row.Name || '',
+                    admission_year: parseInt(row.admission_year || row.Admission_Year) || 2024,
+                    trade_duration: parseInt(row['Trade_Duration '] || row.Trade_Duration || row.trade_duration) || 1,
+                    theory_marks: parseFloat(row.Trade_Theory_Marks || row.Theory_Marks) || 0,
+                    emp_skill_marks: parseFloat(row.Emp_Skill_Marks || row.Employment_Skill) || 0,
+                    practical_marks: parseFloat(row.Practical_Marks) || 0,
+                    formative_marks: parseFloat(row.Formative_Assesment || row.Formative_Assessment) || 0,
+                    total_marks: totalMarks,
+                    status: row.status || row.Status || (totalMarks >= 40 ? 'Pass' : 'Fail'),
+                    student_type: getStudentType(
+                        parseInt(row.admission_year || row.Admission_Year) || 2024, 
+                        parseInt(row['Trade_Duration '] || row.Trade_Duration || row.trade_duration) || 1
+                    )
+                };
+            });
+        }
+
+        function getStudentType(admissionYear, tradeDuration) {
+            if ((admissionYear === 2023 && tradeDuration === 2) || 
+                (admissionYear === 2024 && tradeDuration === 1)) {
+                return 'final';
+            } else if (admissionYear === 2024 && tradeDuration === 2) {
+                return 'first';
+            }
+            return 'other';
+        }
+
+        function switchRegion(region) {
+            document.querySelectorAll('.region-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelector(`.region-tab.${region.toLowerCase()}`).classList.add('active');
+
+            document.querySelectorAll('.region-content').forEach(content => content.classList.remove('active'));
+            
+            if (!document.getElementById(`region${region}`).innerHTML) {
+                createRegionContent(region);
+            }
+            
+            document.getElementById(`region${region}`).classList.add('active');
+            currentRegion = region;
+            
+            if (rawData.length > 0) {
+                initializeRegionFilters(region);
+                updateRegionContent(region);
+            }
+        }
+
+        function createRegionContent(region) {
+            if (region === 'Maharashtra') return;
+            
+            const regionKey = region.toLowerCase();
+            const container = document.getElementById(`region${region}`);
+            
+            container.innerHTML = `
+                <div class="filters-section">
+                    <div class="filters-grid">
+                        <div class="filter-group">
+                            <label class="filter-label">District</label>
