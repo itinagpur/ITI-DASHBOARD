@@ -686,7 +686,7 @@
                 const response = await fetch(csvUrl);
                 
                 if (!response.ok) {
-                    throw new Error(`Cannot access sheet. Please ensure sheet is shared with "Anyone with the link can view"`);
+                    throw new Error('Cannot access sheet. Please ensure sheet is shared with "Anyone with the link can view"');
                 }
 
                 const csvData = await response.text();
@@ -831,3 +831,631 @@
                     <div class="filters-grid">
                         <div class="filter-group">
                             <label class="filter-label">District</label>
+                            <select class="filter-select" id="${regionKey}DistrictFilter" onchange="handleCascadingFilters('${region}')">
+                                <option value="">All Districts</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">ITI Name</label>
+                            <select class="filter-select" id="${regionKey}ItiFilter" onchange="updateRegionContent('${region}')">
+                                <option value="">All ITIs</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Gender</label>
+                            <select class="filter-select" id="${regionKey}GenderFilter" onchange="updateRegionContent('${region}')">
+                                <option value="">All Genders</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Student Type</label>
+                            <select class="filter-select" id="${regionKey}StudentTypeFilter" onchange="updateRegionContent('${region}')">
+                                <option value="">All Students</option>
+                                <option value="final">Final Year</option>
+                                <option value="first">First Year</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Trade</label>
+                            <select class="filter-select" id="${regionKey}TradeFilter" onchange="updateRegionContent('${region}')">
+                                <option value="">All Trades</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-overview">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-title">Total Students</div>
+                            <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1); color: var(--primary-color);">👥</div>
+                        </div>
+                        <div class="stat-value" id="${regionKey}TotalStudents">0</div>
+                        <div class="stat-subtitle" id="${regionKey}Subtitle">${region} Region</div>
+                    </div>
+
+                    <div class="stat-card success">
+                        <div class="stat-header">
+                            <div class="stat-title">Pass Rate</div>
+                            <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success-color);">✅</div>
+                        </div>
+                        <div class="stat-value" id="${regionKey}PassRate">0%</div>
+                        <div class="stat-subtitle" id="${regionKey}PassCount">0 students passed</div>
+                    </div>
+
+                    <div class="stat-card warning">
+                        <div class="stat-header">
+                            <div class="stat-title">Average Score</div>
+                            <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--warning-color);">📈</div>
+                        </div>
+                        <div class="stat-value" id="${regionKey}AvgScore">0</div>
+                        <div class="stat-subtitle">Total marks average</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-title">Gender Distribution</div>
+                            <div class="stat-icon" style="background: rgba(139, 69, 19, 0.1); color: #8b4513;">⚖️</div>
+                        </div>
+                        <div class="stat-value" id="${regionKey}GenderRatio">0:0</div>
+                        <div class="stat-subtitle">Male : Female ratio</div>
+                    </div>
+                </div>
+
+                <div class="charts-section">
+                    <div class="chart-card">
+                        <h3 class="chart-title" id="${regionKey}PerformanceChartTitle">District Performance</h3>
+                        <div class="chart-container">
+                            <canvas id="${regionKey}PerformanceChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <h3 class="chart-title">Pass/Fail Distribution</h3>
+                        <div class="chart-container">
+                            <canvas id="${regionKey}PassFailChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <h3 class="chart-title">Gender-wise Performance</h3>
+                        <div class="chart-container">
+                            <canvas id="${regionKey}GenderChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <h3 class="chart-title">Score Distribution</h3>
+                        <div class="chart-container">
+                            <canvas id="${regionKey}ScoreChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="top-performers-section">
+                    <h2 class="section-title">Top Performers - ${region} Region</h2>
+                    <div class="trade-selector">
+                        <div class="filter-group">
+                            <label class="filter-label">Select Trade for Top Performers</label>
+                            <select class="filter-select" id="${regionKey}TopPerformersTradeFilter" onchange="updateTopPerformers('${region}')">
+                                <option value="">Select a Trade</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="performers-table" id="${regionKey}TopPerformersTable">
+                        <div class="no-trade-message">Please select a trade to view top performers</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function initializeAllRegions() {
+            regions.forEach(region => {
+                initializeRegionFilters(region);
+            });
+        }
+
+        function initializeRegionFilters(region) {
+            const regionKey = region.toLowerCase();
+            const regionData = getRegionData(region);
+
+            if (region === 'Maharashtra') {
+                const regionsInData = [...new Set(rawData.map(row => row.region).filter(Boolean))].sort();
+                populateSelect('maharashtraRegionFilter', regionsInData);
+                
+                const districts = [...new Set(regionData.map(row => row.district).filter(Boolean))].sort();
+                populateSelect('maharashtraDistrictFilter', districts);
+            } else {
+                const districts = [...new Set(regionData.map(row => row.district).filter(Boolean))].sort();
+                populateSelect(`${regionKey}DistrictFilter`, districts);
+            }
+
+            const itis = [...new Set(regionData.map(row => row.iti_name).filter(Boolean))].sort();
+            populateSelect(`${regionKey}ItiFilter`, itis);
+
+            const trades = [...new Set(regionData.map(row => row.trade).filter(Boolean))].sort();
+            populateSelect(`${regionKey}TradeFilter`, trades);
+            populateSelect(`${regionKey}TopPerformersTradeFilter`, trades);
+        }
+
+        function handleCascadingFilters(region) {
+            const regionKey = region.toLowerCase();
+            
+            if (region === 'Maharashtra') {
+                const selectedRegion = document.getElementById('maharashtraRegionFilter').value;
+                
+                if (selectedRegion) {
+                    const filteredData = rawData.filter(row => row.region === selectedRegion);
+                    const districts = [...new Set(filteredData.map(row => row.district).filter(Boolean))].sort();
+                    populateSelect('maharashtraDistrictFilter', districts);
+                    populateSelect('maharashtraItiFilter', []);
+                } else {
+                    const districts = [...new Set(rawData.map(row => row.district).filter(Boolean))].sort();
+                    populateSelect('maharashtraDistrictFilter', districts);
+                }
+            }
+
+            const selectedDistrict = document.getElementById(`${regionKey}DistrictFilter`).value;
+            const baseData = region === 'Maharashtra' ? 
+                (document.getElementById('maharashtraRegionFilter')?.value ? 
+                 rawData.filter(row => row.region === document.getElementById('maharashtraRegionFilter').value) : rawData) :
+                rawData.filter(row => row.region === region);
+
+            if (selectedDistrict) {
+                const filteredData = baseData.filter(row => row.district === selectedDistrict);
+                const itis = [...new Set(filteredData.map(row => row.iti_name).filter(Boolean))].sort();
+                populateSelect(`${regionKey}ItiFilter`, itis);
+            } else {
+                const itis = [...new Set(baseData.map(row => row.iti_name).filter(Boolean))].sort();
+                populateSelect(`${regionKey}ItiFilter`, itis);
+            }
+
+            updateRegionContent(region);
+        }
+
+        function getRegionData(region) {
+            if (region === 'Maharashtra') {
+                return rawData;
+            }
+            return rawData.filter(row => row.region === region);
+        }
+
+        function getFilteredRegionData(region) {
+            const regionKey = region.toLowerCase();
+            let data = getRegionData(region);
+
+            if (region === 'Maharashtra') {
+                const regionFilter = document.getElementById('maharashtraRegionFilter');
+                if (regionFilter && regionFilter.value) {
+                    data = rawData.filter(row => row.region === regionFilter.value);
+                }
+            }
+
+            const districtEl = document.getElementById(`${regionKey}DistrictFilter`);
+            const itiEl = document.getElementById(`${regionKey}ItiFilter`);
+            const genderEl = document.getElementById(`${regionKey}GenderFilter`);
+            const studentTypeEl = document.getElementById(`${regionKey}StudentTypeFilter`);
+            const tradeEl = document.getElementById(`${regionKey}TradeFilter`);
+
+            if (!districtEl) return data;
+
+            const filters = {
+                district: districtEl.value,
+                iti: itiEl?.value,
+                gender: genderEl.value,
+                studentType: studentTypeEl.value,
+                trade: tradeEl.value
+            };
+
+            return data.filter(row => {
+                return (!filters.district || row.district === filters.district) &&
+                       (!filters.iti || row.iti_name === filters.iti) &&
+                       (!filters.gender || row.gender === filters.gender) &&
+                       (!filters.studentType || row.student_type === filters.studentType) &&
+                       (!filters.trade || row.trade === filters.trade);
+            });
+        }
+
+        function updateRegionContent(region) {
+            const filteredData = getFilteredRegionData(region);
+            updateRegionStats(region, filteredData);
+            updateRegionCharts(region, filteredData);
+            updateTopPerformers(region);
+        }
+
+        function updateRegionStats(region, data) {
+            const regionKey = region.toLowerCase();
+            const total = data.length;
+            const passed = data.filter(row => row.status === 'Pass').length;
+            const passRate = total > 0 ? (passed / total * 100).toFixed(1) : 0;
+            
+            const avgScore = total > 0 ? 
+                (data.reduce((sum, row) => sum + row.total_marks, 0) / total).toFixed(1) : 0;
+            
+            const males = data.filter(row => row.gender === 'Male').length;
+            const females = data.filter(row => row.gender === 'Female').length;
+
+            let subtitle = region === 'Maharashtra' ? 'Across Maharashtra' : `${region} Region`;
+            const districtEl = document.getElementById(`${regionKey}DistrictFilter`);
+            const itiEl = document.getElementById(`${regionKey}ItiFilter`);
+            
+            if (itiEl && itiEl.value) {
+                subtitle = itiEl.value;
+            } else if (districtEl && districtEl.value) {
+                subtitle = `${districtEl.value} District`;
+            }
+
+            const elements = {
+                total: document.getElementById(`${regionKey}TotalStudents`),
+                passRate: document.getElementById(`${regionKey}PassRate`),
+                passCount: document.getElementById(`${regionKey}PassCount`),
+                avgScore: document.getElementById(`${regionKey}AvgScore`),
+                genderRatio: document.getElementById(`${regionKey}GenderRatio`),
+                subtitle: document.getElementById(`${regionKey}Subtitle`)
+            };
+
+            if (elements.total) elements.total.textContent = total.toLocaleString();
+            if (elements.passRate) elements.passRate.textContent = passRate + '%';
+            if (elements.passCount) elements.passCount.textContent = `${passed.toLocaleString()} students passed`;
+            if (elements.avgScore) elements.avgScore.textContent = avgScore;
+            if (elements.genderRatio) elements.genderRatio.textContent = `${males.toLocaleString()}:${females.toLocaleString()}`;
+            if (elements.subtitle) elements.subtitle.textContent = subtitle;
+        }
+
+        function updateRegionCharts(region, data) {
+            updatePerformanceChart(region, data);
+            updatePassFailChart(region, data);
+            updateGenderChart(region, data);
+            updateScoreChart(region, data);
+        }
+
+        function updatePerformanceChart(region, data) {
+            const regionKey = region.toLowerCase();
+            const canvas = document.getElementById(`${regionKey}PerformanceChart`);
+            const titleEl = document.getElementById(`${regionKey}PerformanceChartTitle`);
+            
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            
+            if (charts[`${regionKey}Performance`]) {
+                charts[`${regionKey}Performance`].destroy();
+            }
+
+            let chartData = {};
+            let chartTitle = 'Performance Analysis';
+            
+            if (region === 'Maharashtra') {
+                const regionFilter = document.getElementById('maharashtraRegionFilter');
+                if (!regionFilter?.value) {
+                    chartTitle = 'Region-wise Performance';
+                    data.forEach(row => {
+                        if (!chartData[row.region]) {
+                            chartData[row.region] = { total: 0, passed: 0 };
+                        }
+                        chartData[row.region].total++;
+                        if (row.status === 'Pass') chartData[row.region].passed++;
+                    });
+                } else {
+                    chartTitle = 'District-wise Performance';
+                    data.forEach(row => {
+                        if (!chartData[row.district]) {
+                            chartData[row.district] = { total: 0, passed: 0 };
+                        }
+                        chartData[row.district].total++;
+                        if (row.status === 'Pass') chartData[row.district].passed++;
+                    });
+                }
+            } else {
+                chartTitle = 'District-wise Performance';
+                data.forEach(row => {
+                    if (!chartData[row.district]) {
+                        chartData[row.district] = { total: 0, passed: 0 };
+                    }
+                    chartData[row.district].total++;
+                    if (row.status === 'Pass') chartData[row.district].passed++;
+                });
+            }
+
+            if (titleEl) titleEl.textContent = chartTitle;
+
+            const labels = Object.keys(chartData).sort();
+            const passRates = labels.map(label => 
+                chartData[label].total > 0 ? 
+                (chartData[label].passed / chartData[label].total * 100) : 0
+            );
+
+            charts[`${regionKey}Performance`] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Pass Rate (%)',
+                        data: passRates,
+                        backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                        borderColor: 'rgba(16, 185, 129, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: { display: true, text: 'Pass Rate (%)' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        function updatePassFailChart(region, data) {
+            const regionKey = region.toLowerCase();
+            const canvas = document.getElementById(`${regionKey}PassFailChart`);
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            
+            if (charts[`${regionKey}PassFail`]) {
+                charts[`${regionKey}PassFail`].destroy();
+            }
+
+            const passed = data.filter(row => row.status === 'Pass').length;
+            const failed = data.length - passed;
+
+            charts[`${regionKey}PassFail`] = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Pass', 'Fail'],
+                    datasets: [{
+                        data: [passed, failed],
+                        backgroundColor: ['rgba(16, 185, 129, 0.8)', 'rgba(239, 68, 68, 0.8)'],
+                        borderColor: ['rgba(16, 185, 129, 1)', 'rgba(239, 68, 68, 1)'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        function updateGenderChart(region, data) {
+            const regionKey = region.toLowerCase();
+            const canvas = document.getElementById(`${regionKey}GenderChart`);
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            
+            if (charts[`${regionKey}Gender`]) {
+                charts[`${regionKey}Gender`].destroy();
+            }
+
+            const genderData = {};
+            data.forEach(row => {
+                if (!genderData[row.gender]) {
+                    genderData[row.gender] = { total: 0, passed: 0 };
+                }
+                genderData[row.gender].total++;
+                if (row.status === 'Pass') genderData[row.gender].passed++;
+            });
+
+            const genders = Object.keys(genderData);
+            const passRates = genders.map(gender => 
+                genderData[gender].total > 0 ? 
+                (genderData[gender].passed / genderData[gender].total * 100) : 0
+            );
+
+            charts[`${regionKey}Gender`] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: genders,
+                    datasets: [{
+                        label: 'Pass Rate (%)',
+                        data: passRates,
+                        backgroundColor: ['rgba(59, 130, 246, 0.8)', 'rgba(236, 72, 153, 0.8)'],
+                        borderColor: ['rgba(59, 130, 246, 1)', 'rgba(236, 72, 153, 1)'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: { display: true, text: 'Pass Rate (%)' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        function updateScoreChart(region, data) {
+            const regionKey = region.toLowerCase();
+            const canvas = document.getElementById(`${regionKey}ScoreChart`);
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            
+            if (charts[`${regionKey}Score`]) {
+                charts[`${regionKey}Score`].destroy();
+            }
+
+            const bins = {
+                '0-74': 0,
+                '75-79': 0,
+                '80-84': 0,
+                '85-89': 0,
+                '90-94': 0,
+                '95-100': 0
+            };
+
+            data.forEach(row => {
+                const score = parseFloat(row.total_marks) || 0;
+                if (score < 75) bins['0-74']++;
+                else if (score < 80) bins['75-79']++;
+                else if (score < 85) bins['80-84']++;
+                else if (score < 90) bins['85-89']++;
+                else if (score < 95) bins['90-94']++;
+                else if (score <= 100) bins['95-100']++;
+            });
+
+            const labels = Object.keys(bins);
+            const values = Object.values(bins);
+            
+            const colors = [
+                'rgba(220, 38, 38, 0.8)',
+                'rgba(245, 158, 11, 0.8)',
+                'rgba(59, 130, 246, 0.8)',
+                'rgba(16, 185, 129, 0.8)',
+                'rgba(34, 197, 94, 0.8)',
+                'rgba(22, 163, 74, 0.9)'
+            ];
+
+            charts[`${regionKey}Score`] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Students',
+                        data: values,
+                        backgroundColor: colors,
+                        borderColor: colors.map(c => c.replace('0.8', '1').replace('0.9', '1')),
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Number of Students' }
+                        },
+                        x: {
+                            title: { display: true, text: 'Score Range (%)' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    const total = values.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0;
+                                    return `${percentage}% of total students`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateTopPerformers(region) {
+            const regionKey = region.toLowerCase();
+            const selectEl = document.getElementById(`${regionKey}TopPerformersTradeFilter`);
+            const containerEl = document.getElementById(`${regionKey}TopPerformersTable`);
+            
+            if (!selectEl || !containerEl) return;
+            
+            const selectedTrade = selectEl.value;
+
+            if (!selectedTrade) {
+                containerEl.innerHTML = '<div class="no-trade-message">Please select a trade to view top performers</div>';
+                return;
+            }
+
+            const filteredData = getFilteredRegionData(region);
+            const tradeData = filteredData.filter(row => 
+                row.trade === selectedTrade && 
+                row.student_type === 'final' && 
+                row.total_marks > 0
+            );
+
+            if (tradeData.length === 0) {
+                containerEl.innerHTML = '<div class="no-trade-message">No final year students found for this trade in the selected filters</div>';
+                return;
+            }
+
+            const topPerformers = tradeData
+                .sort((a, b) => b.total_marks - a.total_marks)
+                .slice(0, 10);
+
+            let tableHtml = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Name</th>
+                            <th>ITI Name</th>
+                            <th>District</th>
+                            <th>Total Marks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            topPerformers.forEach((performer, index) => {
+                const rankClass = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : '';
+                tableHtml += `
+                    <tr>
+                        <td>
+                            <div class="performer-rank ${rankClass}">
+                                ${index + 1}
+                            </div>
+                        </td>
+                        <td><strong>${performer.trainee_name}</strong></td>
+                        <td>${performer.iti_name}</td>
+                        <td>${performer.district}</td>
+                        <td><strong>${performer.total_marks}</strong></td>
+                    </tr>
+                `;
+            });
+
+            tableHtml += '</tbody></table>';
+            containerEl.innerHTML = tableHtml;
+        }
+
+        function populateSelect(selectId, options) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+            
+            const currentValue = select.value;
+            const firstOption = select.querySelector('option').cloneNode(true);
+            
+            select.innerHTML = '';
+            select.appendChild(firstOption);
+            
+            options.forEach(option => {
+                const optionElement = document.createElement('option');
+                optionElement.value = option;
+                optionElement.textContent = option;
+                select.appendChild(optionElement);
+            });
+
+            if (options.includes(currentValue)) {
+                select.value = currentValue;
+            }
+        }
+
+        console.log('ITI Dashboard loaded successfully');
+    </script>
+</body>
+</html>
